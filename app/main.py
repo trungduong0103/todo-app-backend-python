@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 from typing import Annotated
 import models
@@ -25,9 +25,11 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
+
 @app.get("/")
 async def root():
-    return {"message": "FastAPI with PostgreSQL"}
+    return {"message": "FastAPI with Postgres."}
+
 
 @app.post("/todos/")
 async def create_todo(todo: TodoBase, db: db_dependency):
@@ -39,4 +41,9 @@ async def create_todo(todo: TodoBase, db: db_dependency):
     db.refresh(db_todo)
 
     return db_todo
- 
+
+
+@app.get("/todos/")
+async def get_todos(db: db_dependency):
+    todos = db.query(models.Todos).all()
+    return todos

@@ -2,14 +2,17 @@ services:
   fastapi_service:
     build: .
     ports:
-      - "80:80"
-    volumes:
-      - ./app:/app/app
+      - "8000:80"
     environment:
       - DATABASE_URL=postgresql://trung:root@postgres_service:5432/todos
     depends_on:
       - postgres_service
     restart: always
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./app
+          target: /code/app
 
   postgres_service:
     image: postgres:15

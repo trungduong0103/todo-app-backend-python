@@ -1,0 +1,5 @@
+# .git is added automatically
+
+__pycache__
+.venv
+.github
