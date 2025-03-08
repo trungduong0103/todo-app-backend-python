@@ -1,0 +1,27 @@
+services:
+  fastapi_service:
+    build: .
+    ports:
+      - "80:80"
+    volumes:
+      - ./app:/app/app
+    environment:
+      - DATABASE_URL=postgresql://trung:root@postgres_service:5432/todos
+    depends_on:
+      - postgres_service
+    restart: always
+
+  postgres_service:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_USER=trung
+      - POSTGRES_DB=todos
+    ports:
+      - "5432:5432"
+    restart: always
+
+volumes:
+  postgres_data:
