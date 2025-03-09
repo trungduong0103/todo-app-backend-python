@@ -28,7 +28,13 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2.key
         chmod 600 ~/.ssh/ec2.key
+        eval "$(ssh-agent -s)"
+        ssh-add ~/.ssh/ec2.key
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+    
+    - name: Debug SSH Connection
+      run: |
+        ssh -v -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "echo SSH connection successful"
     
     - name: Copy files to EC2
       run: |
