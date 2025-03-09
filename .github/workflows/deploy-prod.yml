@@ -23,15 +23,15 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "mkdir -p ~/todo-app/app"
-
+          ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "mkdir -p ~/todo-app/app" && \
           scp -i ~/.ssh/ec2.key \
               ./postgresql_setup.sh \
               Dockerfile \
               requirements.txt \
-              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/postgresql_setup.sh
-
-          scp -i ~/.ssh/ec2.key -r ./app/* ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/todo-app/app/
+              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/todo-app/ && \
+          scp -i ~/.ssh/ec2.key -r \
+              ./app/* \
+              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/todo-app/app/
 
       - name: Deploy on EC2
         run: |
