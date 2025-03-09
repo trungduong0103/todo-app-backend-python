@@ -21,10 +21,6 @@ jobs:
         ssh-add ~/.ssh/ec2.key
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
     
-    - name: Debug SSH Connection
-      run: |
-        ssh -v -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "echo SSH connection successful"
-    
     - name: Copy files to EC2
       run: |
         # Create the directory on EC2
@@ -42,6 +38,8 @@ jobs:
       run: |
         ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
           echo "=== Starting deployment ==="
+
+          exit 1
           
           # Make the PostgreSQL setup script executable
           chmod +x ~/postgresql_setup.sh || echo "WARNING: Could not make PostgreSQL script executable"
