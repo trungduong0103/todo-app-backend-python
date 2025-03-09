@@ -27,7 +27,7 @@ jobs:
       - name: Copy files to EC2
         run: |
           ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "mkdir -p ~${{ env.CODE_DIR }}" && \
-          
+
           scp -i ~/.ssh/ec2.key \
               ./postgresql_setup.sh \
               Dockerfile \
@@ -56,9 +56,8 @@ jobs:
             fi
             
 
-            echo "=== Building Docker image locally ==="
+            echo "=== Building Docker image ==="
             
-            # Build the Docker image
             sudo docker build -t todo-app . || {
               echo "[ERROR] Docker build failed!"
               exit 1
