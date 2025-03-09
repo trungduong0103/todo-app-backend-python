@@ -1,0 +1,74 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]  # Adjust if your main branch has a different name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: false
+        tags: todo-app:latest
+        outputs: type=docker,dest=/tmp/todo-app.tar
+    
+    - name: Install SSH Key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2.key
+        chmod 600 ~/.ssh/ec2.key
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+    
+    - name: Copy files to EC2
+      run: |
+        # Copy the Docker image
+        scp -i ~/.ssh/ec2.key /tmp/todo-app.tar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/tmp/todo-app.tar
+        
+        # Copy PostgreSQL setup script
+        scp -i ~/.ssh/ec2.key ./setup_postgres.sh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/setup_postgres.sh
+    
+    - name: Deploy on EC2
+      run: |
+        ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+          # Make the PostgreSQL setup script executable
+          chmod +x ~/setup_postgres.sh
+          
+          # Check if PostgreSQL is installed, if not, install it
+          if ! command -v psql &> /dev/null; then
+            echo "PostgreSQL not found. Installing..."
+            # Run the setup script with parameters from secrets
+            ./setup_postgres.sh "${{ secrets.DB_PASSWORD }}" "${{ secrets.DB_USER }}" "${{ secrets.DB_PASSWORD }}"
+          else
+            echo "PostgreSQL is already installed"
+          fi
+          
+          # Load the Docker image
+          docker load < /tmp/todo-app.tar
+          
+          # Stop and remove any existing container
+          docker stop todo-app || true
+          docker rm todo-app || true
+          
+          # Run the new container with environment variables for database connection
+          docker run -d --restart always --name todo-app \
+            -p 80:80 \
+            -e DATABASE_URL="postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@$(hostname -I | awk '{print $1}'):5432/todos" \
+            todo-app:latest
+          
+          # Clean up
+          rm /tmp/todo-app.tar
+          
+          # Verify the container is running
+          docker ps | grep todo-app
+        EOF

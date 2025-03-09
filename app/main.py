@@ -14,7 +14,6 @@ class TodoBase(BaseModel):
     description: str
     is_completed: bool
 
-
 def get_db():
     db = SessionLocal()
     try:
@@ -22,9 +21,7 @@ def get_db():
     finally:
         db.close()
 
-
 db_dependency = Annotated[Session, Depends(get_db)]
-
 
 @app.get("/")
 async def root():
