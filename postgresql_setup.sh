@@ -18,7 +18,7 @@ sudo apt update
 
 # Install PostgreSQL
 echo "=== Installing PostgreSQL ==="
-sudo apt install postgresql
+sudo apt install -y postgresql
 
 # PostgreSQL service name and config directory
 PG_SERVICE="postgresql"
