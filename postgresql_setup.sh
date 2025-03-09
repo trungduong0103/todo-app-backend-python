@@ -5,20 +5,17 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 
 # Parameters with defaults
-PG_PASSWORD=${1:-"securepassword"} # Admin password
-PG_DB="todos"                     # Fixed database name
+PG_PASSWORD=${1:-"securepassword"}
+PG_DB="todos"
 
 echo "=== Setting up PostgreSQL on Ubuntu ==="
 
-# Update package lists
 echo "=== Updating package lists ==="
 sudo apt-get update
 
-# Install PostgreSQL
 echo "=== Installing PostgreSQL ==="
 sudo apt install -y postgresql
 
-# PostgreSQL service name and config directory
 PG_SERVICE="postgresql"
 PG_CONFIG_DIR="/etc/postgresql/$(ls /etc/postgresql/ | sort -V | tail -n1)/main"
 
@@ -62,12 +59,6 @@ sudo ufw allow 5432/tcp 2>/dev/null || echo "Firewall rule not added (ufw may no
 echo "=== PostgreSQL setup completed ==="
 echo "PostgreSQL version:"
 psql --version || echo "psql command not available in PATH"
-
-echo "=== Connection Information ==="
-echo "Host: localhost or your-ec2-ip"
-echo "Port: 5432"
-echo "Database: $PG_DB"
-echo "Connection string format: postgresql://postgres:$PG_PASSWORD@localhost:5432/$PG_DB"
 
 # Test the connection with the new password
 echo "=== Testing the connection ==="
