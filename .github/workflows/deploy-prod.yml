@@ -38,11 +38,11 @@ jobs:
     
     - name: Copy files to EC2
       run: |
-        # Copy the Docker image
-        scp -i ~/.ssh/ec2.key /tmp/todo-app.tar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/tmp/todo-app.tar
+        # Copy the Docker image with verbose output
+        scp -v -i ~/.ssh/ec2.key /tmp/todo-app.tar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/tmp/todo-app.tar
         
-        # Copy PostgreSQL setup script
-        scp -i ~/.ssh/ec2.key ./postgresql_setup.sh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/postgresql_setup.sh
+        # Copy PostgreSQL setup script with verbose output
+        scp -v -i ~/.ssh/ec2.key ./postgresql_setup.sh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/postgresql_setup.sh
     
     - name: Deploy on EC2
       run: |
