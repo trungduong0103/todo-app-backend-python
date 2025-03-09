@@ -1,13 +1,15 @@
 # Todo App Python Backend
 
+[![Deploy to EC2](https://github.com/trungduong0103/todo-app-backend-python/actions/workflows/deploy-prod.yml/badge.svg)](https://github.com/trungduong0103/todo-app-backend-python/actions/workflows/deploy-prod.yml)
+
 ## Description
 - This repo is created to:
   - Practice creating a backend using Python and FastAPI.
   - Practice CI/CD using Github actions
   - Practice setting up virtual machine
     - [x] AWS EC2
-    - [] Hertzner Cloud
-    - [] GCP
+    - [ ] Hertzner Cloud
+    - [ ] GCP
 
 
 ## Requirements
@@ -26,5 +28,5 @@ OR
 Run docker compose watch
 
 ## TODO
-- [] Create chart to visualize CI/CD
+- [ ] Create chart to visualize CI/CD
 
