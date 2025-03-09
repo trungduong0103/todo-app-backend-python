@@ -25,7 +25,7 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 @app.get("/")
 async def root():
-    return {"message": "FastAPI PostgresSQL."}
+    return {"message": "Version 1."}
 
 @app.post("/todos/")
 async def create_todo(todo: TodoBase, db: db_dependency):

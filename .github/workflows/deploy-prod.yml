@@ -8,6 +8,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      CODE_DIR: /todo-app/
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -23,23 +26,26 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "mkdir -p ~/todo-app/app" && \
+          ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "mkdir -p ~${{ env.CODE_DIR }}" && \
+          
           scp -i ~/.ssh/ec2.key \
               ./postgresql_setup.sh \
               Dockerfile \
               requirements.txt \
-              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/todo-app/ && \
+              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~${{ env.CODE_DIR }} && \
           scp -i ~/.ssh/ec2.key -r \
               ./app/* \
-              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/todo-app/app/
+              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~${{ env.CODE_DIR }}/app
 
       - name: Deploy on EC2
         run: |
           ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
             echo "=== Starting deployment ==="
 
+            cd ~${{ env.CODE_DIR }}
+
             # Make the PostgreSQL setup script executable
-            chmod +x ~/postgresql_setup.sh || { echo "[ERROR]: Could not make PostgreSQL script executable"; exit 1; }
+            chmod +x ./postgresql_setup.sh || { echo "[ERROR]: Could not make PostgreSQL script executable"; exit 1; }
             
             # Check if PostgreSQL is installed, if not, install it
             if ! command -v psql &> /dev/null; then
@@ -49,14 +55,8 @@ jobs:
               echo "PostgreSQL is already installed"
             fi
             
-            # Build Docker image locally
+
             echo "=== Building Docker image locally ==="
-            cd ~/todo-app
-            
-            # Verify files are present
-            echo "Checking for required files:"
-            ls -la
-            ls -la app/
             
             # Build the Docker image
             sudo docker build -t todo-app . || {
