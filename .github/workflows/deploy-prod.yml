@@ -36,19 +36,19 @@ jobs:
         scp -i ~/.ssh/ec2.key /tmp/todo-app.tar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/tmp/todo-app.tar
         
         # Copy PostgreSQL setup script
-        scp -i ~/.ssh/ec2.key ./setup_postgres.sh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/setup_postgres.sh
+        scp -i ~/.ssh/ec2.key ./postgresql_setup.sh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/postgresql_setup.sh
     
     - name: Deploy on EC2
       run: |
         ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
           # Make the PostgreSQL setup script executable
-          chmod +x ~/setup_postgres.sh
+          chmod +x ~/postgresql_setup.sh
           
           # Check if PostgreSQL is installed, if not, install it
           if ! command -v psql &> /dev/null; then
             echo "PostgreSQL not found. Installing..."
             # Run the setup script with parameters from secrets
-            ./setup_postgres.sh "${{ secrets.DB_PASSWORD }}" "${{ secrets.DB_USER }}" "${{ secrets.DB_PASSWORD }}"
+            ./postgresql_setup.sh "${{ secrets.DB_PASSWORD }}" "${{ secrets.DB_USER }}" "${{ secrets.DB_PASSWORD }}"
           else
             echo "PostgreSQL is already installed"
           fi
