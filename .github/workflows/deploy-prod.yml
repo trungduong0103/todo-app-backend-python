@@ -38,8 +38,6 @@ jobs:
       run: |
         ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
           echo "=== Starting deployment ==="
-
-          exit 1
           
           # Make the PostgreSQL setup script executable
           chmod +x ~/postgresql_setup.sh || echo "WARNING: Could not make PostgreSQL script executable"
