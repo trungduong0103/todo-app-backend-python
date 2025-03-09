@@ -12,17 +12,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
     
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    
-    - name: Build Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: false
-        tags: todo-app:latest
-        outputs: type=docker,dest=/tmp/todo-app.tar
-    
     - name: Install SSH Key
       run: |
         mkdir -p ~/.ssh
@@ -32,38 +21,27 @@ jobs:
         ssh-add ~/.ssh/ec2.key
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
     
-    - name: Verify files before copying
+    - name: Debug SSH Connection
       run: |
-        # Check if Docker image exists
-        ls -la /tmp/todo-app.tar || echo "Docker image file not found!"
-        
-        # Check if PostgreSQL script exists
-        ls -la ./postgresql_setup.sh || echo "PostgreSQL setup script not found!"
-        
+        ssh -v -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "echo SSH connection successful"
+    
     - name: Copy files to EC2
       run: |
-        # Check if the file already exists on the remote server
-        if ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "[ -f /tmp/todo-app.tar ]"; then
-          echo "Docker image file already exists on server, skipping transfer"
-        else
-          # Copy the Docker image with verbose output
-          echo "Copying Docker image to server..."
-          scp -v -i ~/.ssh/ec2.key /tmp/todo-app.tar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/tmp/todo-app.tar
-        fi
+        # Create the directory on EC2
+        ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "mkdir -p ~/todo-app/app"
         
-        # Copy PostgreSQL setup script with verbose output
-        echo "Copying PostgreSQL setup script..."
-        scp -v -i ~/.ssh/ec2.key ./postgresql_setup.sh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/postgresql_setup.sh
+        # Copy the PostgreSQL setup script
+        scp -i ~/.ssh/ec2.key ./postgresql_setup.sh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/postgresql_setup.sh
+        
+        # Copy application files
+        scp -i ~/.ssh/ec2.key Dockerfile ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/todo-app/
+        scp -i ~/.ssh/ec2.key requirements.txt ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/todo-app/
+        scp -i ~/.ssh/ec2.key -r ./app/* ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/todo-app/app/
     
     - name: Deploy on EC2
       run: |
         ssh -i ~/.ssh/ec2.key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
           echo "=== Starting deployment ==="
-          
-          # Debug Docker image file
-          echo "Checking Docker image file:"
-          ls -la /tmp/todo-app.tar || echo "Docker image file not found or not accessible"
-          echo "Docker image file size: $(du -h /tmp/todo-app.tar 2>/dev/null || echo 'Unknown')"
           
           # Make the PostgreSQL setup script executable
           chmod +x ~/postgresql_setup.sh || echo "WARNING: Could not make PostgreSQL script executable"
@@ -71,42 +49,44 @@ jobs:
           # Check if PostgreSQL is installed, if not, install it
           if ! command -v psql &> /dev/null; then
             echo "PostgreSQL not found. Installing..."
+            # Run the setup script with parameters from secrets
             ./postgresql_setup.sh "${{ secrets.DB_PASSWORD }}" "${{ secrets.DB_USER }}" "${{ secrets.DB_PASSWORD }}" || echo "WARNING: PostgreSQL setup failed"
           else
             echo "PostgreSQL is already installed"
-            # Test PostgreSQL connection
-            echo "Testing PostgreSQL connection:"
-            PGPASSWORD="${{ secrets.DB_PASSWORD }}" psql -h localhost -U "${{ secrets.DB_USER }}" -d todos -c "SELECT 1" || echo "PostgreSQL connection test failed"
           fi
           
-          echo "Loading Docker image from /tmp/todo-app.tar"
-          # Add file check before loading
-          if [ -f /tmp/todo-app.tar ] && [ -s /tmp/todo-app.tar ]; then
-            echo "Docker image file exists and is not empty, proceeding with load"
-            sudo docker load < /tmp/todo-app.tar || echo "ERROR: Failed to load Docker image"
-          else
-            echo "ERROR: Docker image file is missing or empty!"
+          # Build Docker image locally
+          echo "=== Building Docker image locally ==="
+          cd ~/todo-app
+          
+          # Verify files are present
+          echo "Checking for required files:"
+          ls -la
+          ls -la app/
+          
+          # Build the Docker image
+          sudo docker build -t todo-app . || {
+            echo "Docker build failed!"
             exit 1
-          fi
+          }
           
-          echo "Stopping and removing any existing container"
-          sudo docker stop todo-app || echo "No container to stop"
-          sudo docker rm todo-app || echo "No container to remove"
+          # Stop and remove any existing container
+          echo "Stopping any existing container"
+          sudo docker stop todo-app 2>/dev/null || echo "No container to stop"
+          sudo docker rm todo-app 2>/dev/null || echo "No container to remove"
           
           echo "Starting new container"
           echo "DATABASE_URL will be: postgresql://${{ secrets.DB_USER }}:****@$(hostname -I | awk '{print $1}'):5432/todos"
           sudo docker run -d --restart always --name todo-app \
             -p 80:80 \
             -e DATABASE_URL="postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@$(hostname -I | awk '{print $1}'):5432/todos" \
-            todo-app:latest || echo "ERROR: Failed to start container"
-          
-          echo "Cleaning up"
-          # Don't remove the file to avoid repeated transfers
-          # rm /tmp/todo-app.tar
+            todo-app:latest || {
+              echo "ERROR: Failed to start container"
+              sudo docker logs todo-app
+              exit 1
+            }
           
           echo "Verifying container is running"
           sudo docker ps | grep todo-app || echo "WARNING: Container not found in docker ps output"
-          echo "Available Docker images:"
-          sudo docker images
           
           echo "=== Deployment completed ==="

@@ -14,7 +14,7 @@ echo "=== Setting up PostgreSQL on Ubuntu ==="
 
 # Update package lists
 echo "=== Updating package lists ==="
-sudo apt update
+sudo apt-get update
 
 # Install PostgreSQL
 echo "=== Installing PostgreSQL ==="
