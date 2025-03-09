@@ -6,8 +6,6 @@ set -e  # Exit immediately if a command exits with a non-zero status
 
 # Parameters with defaults
 PG_PASSWORD=${1:-"securepassword"} # Admin password
-APP_USER=${2:-"todo_app"}         # Application username
-APP_PASSWORD=${3:-"securepassword"} # Application password
 PG_DB="todos"                     # Fixed database name
 
 echo "=== Setting up PostgreSQL on Ubuntu ==="
@@ -48,11 +46,6 @@ echo "=== Creating database and user ==="
 sudo -u postgres psql << EOF
   ALTER USER postgres WITH PASSWORD '$PG_PASSWORD';
   CREATE DATABASE $PG_DB;
-  CREATE USER $APP_USER WITH PASSWORD '$APP_PASSWORD';
-  GRANT ALL PRIVILEGES ON DATABASE $PG_DB TO $APP_USER;
-  ALTER ROLE $APP_USER SET client_encoding TO 'utf8';
-  ALTER ROLE $APP_USER SET default_transaction_isolation TO 'read committed';
-  ALTER ROLE $APP_USER SET timezone TO 'UTC';
 EOF
 
 # Now update pg_hba.conf for password auth after we've set passwords
@@ -74,14 +67,7 @@ echo "=== Connection Information ==="
 echo "Host: localhost or your-ec2-ip"
 echo "Port: 5432"
 echo "Database: $PG_DB"
-echo "Admin Username: postgres"
-echo "Admin Password: $PG_PASSWORD"
-echo "Application Username: $APP_USER"
-echo "Application Password: $APP_PASSWORD"
-echo ""
-echo "Connection string format: postgresql://$APP_USER:$APP_PASSWORD@localhost:5432/$PG_DB"
-echo ""
-echo "Important: Make sure your EC2 security group allows inbound traffic on port 5432 for PostgreSQL connections."
+echo "Connection string format: postgresql://postgres:$PG_PASSWORD@localhost:5432/$PG_DB"
 
 # Test the connection with the new password
 echo "=== Testing the connection ==="

@@ -50,7 +50,7 @@ jobs:
           if ! command -v psql &> /dev/null; then
             echo "PostgreSQL not found. Installing..."
             # Run the setup script with parameters from secrets
-            ./postgresql_setup.sh "${{ secrets.DB_PASSWORD }}" "${{ secrets.DB_USER }}" "${{ secrets.DB_PASSWORD }}" || echo "WARNING: PostgreSQL setup failed"
+            ./postgresql_setup.sh "${{ secrets.DB_PASSWORD }}" || echo "WARNING: PostgreSQL setup failed"
           else
             echo "PostgreSQL is already installed"
           fi
@@ -76,10 +76,9 @@ jobs:
           sudo docker rm todo-app 2>/dev/null || echo "No container to remove"
           
           echo "Starting new container"
-          echo "DATABASE_URL will be: postgresql://${{ secrets.DB_USER }}:****@$(hostname -I | awk '{print $1}'):5432/todos"
           sudo docker run -d --restart always --name todo-app \
             -p 80:80 \
-            -e DATABASE_URL="postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@$(hostname -I | awk '{print $1}'):5432/todos" \
+            -e DATABASE_URL="postgresql://postgres:${{ secrets.DB_PASSWORD }}@$(hostname -I | awk '{print $1}'):5432/todos" \
             todo-app:latest || {
               echo "ERROR: Failed to start container"
               sudo docker logs todo-app
